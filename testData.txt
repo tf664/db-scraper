@@ -1,0 +1,31 @@
+const departureStation = "Düsseldorf Hbf";  
+const arrivalStation = "Wuppertal Hbf";   
+const date = "2025-05-07";                // (format: YYYY-MM-DD)
+const time = "7:10";                   // (format: HH:mm)
+
+
+const departureStation = "Berlin Hbf";  
+const arrivalStation = "Hamburg Hbf";   
+const date = "2025-06-15";  
+const time = "14:45";  
+
+
+
+const departureStation = "Frankfurt Hbf";  
+const arrivalStation = "Stuttgart Hbf";   
+const date = "2025-07-20";  
+const time = "08:30";  
+
+
+
+const departureStation = "München Hbf";  
+const arrivalStation = "Nürnberg Hbf";   
+const date = "2025-09-05";  
+const time = "16:50";  
+
+
+
+const departureStation = "Leipzig Hbf";  
+const arrivalStation = "Dresden Hbf";   
+const date = "2025-10-10";  
+const time = "19:00";  
