@@ -37,7 +37,7 @@ export const scrapeDBNavigator = async (abfahrtsbahnhof, ankunftsbahnhof, datum,
         const selector = "#ReiseloesungList > div.loading-indicator.loading-indicator--full-width > div.reiseloesung-list-page__wrapper > div:nth-child(1) > div > h2";
         const element = await page.$(selector);
         if (element) {
-            logError(abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit, "No connection found");
+            logError(abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit, "No connection found for this route");
         } else {
             await page.screenshot({ path: 'preDetails.png' }); // debug
 
