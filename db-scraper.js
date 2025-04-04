@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 
 export const scrapeDBNavigator = async (departureStation, arrivalStation, date, time) => {
-    const browser = await puppeteer.launch({ headless: false, slowMo: 100 }); // false for debugging
+    const browser = await puppeteer.launch({ headless: true }); // false for debugging
     const page = await browser.newPage();
 
     // Open the DB Navigator website
@@ -118,7 +118,7 @@ export const scrapeDBNavigator = async (departureStation, arrivalStation, date, 
     await browser.close();
 };
 
-const generateURLL = (departureStation, arrivalStation, date, time) => {
+const generateURL = (departureStation, arrivalStation, date, time) => {
     const baseURL = "https://www.bahn.com/en"; // Replace with the actual base URL of DB Navigator
     const params = new URLSearchParams({
         start: departureStation,
@@ -131,35 +131,35 @@ const generateURLL = (departureStation, arrivalStation, date, time) => {
     return 'https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=D%C3%BCsseldorf%20Hbf&zo=Wuppertal%20Hbf&kl=2&r=13:16:KLASSENLOS:1&soid=A%3D1%40O%3DD%C3%BCsseldorf%20Hbf%40X%3D6794317%40Y%3D51219960%40U%3D80%40L%3D8000085%40B%3D1%40p%3D1742845592%40i%3DU%C3%97008008094%40&zoid=A%3D1%40O%3DWuppertal%20Hbf%40X%3D7149544%40Y%3D51254362%40U%3D80%40L%3D8000266%40B%3D1%40p%3D1741637184%40i%3DU%C3%97008008143%40&sot=ST&zot=ST&soei=8000085&zoei=8000266&hd=2025-04-07T07:15:07&hza=D&hz=%5B%5D&ar=false&s=true&d=false&vm=00,01,02,03,04,05,06,07,08,09&fm=false&bp=false&dlt=false&dltv=false';
 };
 
-
-const generateURL = (departureStation, arrivalStation, date, time) => {
+const generateURLL = (departureStation, arrivalStation, date, time) => {
     const baseURL = "https://www.bahn.de/buchung/fahrplan/suche";
 
-    // Ensure time is formatted correctly (adds leading zero if missing)
-    const formattedTime = time.padStart(5, "0"); // Ensures "7:10" → "07:10"
+    // Ensure time is formatted correctly
+    const formattedTime = time.padStart(5, "0");
 
-    // Encode station names to match Bahn.de's expected format
+    // Encode station names
     const encodedDeparture = encodeURIComponent(departureStation);
     const encodedArrival = encodeURIComponent(arrivalStation);
 
-    // Construct URL parameters
+    // Construct full parameters before the hash
     const params = new URLSearchParams({
-        sts: "true",   // Enable station search
-        so: encodedDeparture,   // Departure station
-        zo: encodedArrival,     // Arrival station
-        hd: `${date}T${formattedTime}:00`, // Full date-time format (YYYY-MM-DDTHH:MM:SS)
-        kl: 2,        // 2nd class ticket
-        ar: "false",  // One-way trip
-        s: "true",    // Activate search
-        d: "false",   // No flexible tickets
-        vm: "00,01,02,03,04,05,06,07,08,09", // Enable all train types
-        fm: "false",  // No mobility restrictions
-        bp: "false",  // No bicycle transport
+        sts: "true",
+        so: encodedDeparture,
+        zo: encodedArrival,
+        hd: `${date}T${formattedTime}:00`,
+        kl: "2",
+        ar: "false",
+        s: "true",
+        d: "false",
+        sot: "ST",
+        zot: "ST",
+        vm: "00,01,02,03,04,05,06,07,08,09",
+        bp: "false",
         dlt: "false",
         dltv: "false"
     });
 
-    return `${baseURL}#${params.toString()}`;
+    return `${baseURL}?${params.toString()}`;  // Use ? instead of # for query params
 };
 
 function logError(departure, arrival, date, time, errorMessage) {
