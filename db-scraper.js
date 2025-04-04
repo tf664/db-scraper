@@ -35,7 +35,7 @@ export const scrapeDBNavigator = async (abfahrtsbahnhof, ankunftsbahnhof, datum,
         await page.screenshot({ path: 'afterCookie.png' }); // debug
 
         const selector = "#ReiseloesungList > div.loading-indicator.loading-indicator--full-width > div.reiseloesung-list-page__wrapper > div:nth-child(1) > div > h2";
-        const element = await page.$(selector);
+        const elemgit remote add origin https://github.com/tf664/db-scraper.gitent = await page.$(selector);
         if (element) {
             logError(abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit, "No connection found for this route");
         } else {
