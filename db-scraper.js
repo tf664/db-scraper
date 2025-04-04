@@ -1,11 +1,11 @@
 import puppeteer from "puppeteer";
 
-export const scrapeDBNavigator = async (abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit) => {
-    const browser = await puppeteer.launch({ headless: true }); // false for debugging
+export const scrapeDBNavigator = async (departureStation, arrivalStation, date, time) => {
+    const browser = await puppeteer.launch({ headless: false, slowMo: 100 }); // false for debugging
     const page = await browser.newPage();
 
     // Open the DB Navigator website
-    const url = generateURL(abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit);
+    const url = generateURL(departureStation, arrivalStation, date, time);
     await page.goto(url, { waitUntil: 'networkidle2' });
 
     console.log('Page loaded, waiting for departure data... \n');
@@ -35,15 +35,17 @@ export const scrapeDBNavigator = async (abfahrtsbahnhof, ankunftsbahnhof, datum,
         await page.screenshot({ path: 'afterCookie.png' }); // debug
 
         const selector = "#ReiseloesungList > div.loading-indicator.loading-indicator--full-width > div.reiseloesung-list-page__wrapper > div:nth-child(1) > div > h2";
-        const elemgit remote add origin https://github.com/tf664/db-scraper.gitent = await page.$(selector);
+        const element = await page.$(selector);
         if (element) {
-            logError(abfahrtsbahnhof, ankunftsbahnhof, datum, uhrzeit, "No connection found for this route");
+            logError(departureStation, arrivalStation, date, time, "No connection found for this ");
+            await page.screenshot({ path: 'noConnection.png' }); // debug
+
         } else {
             await page.screenshot({ path: 'preDetails.png' }); // debug
 
 
             // Wait for the "Details" button to appear
-            await page.waitForSelector('button.db-web-expansion-toggle__button', { visible: true });
+            await page.waitForSelector('button.db-web-expansion-toggle__button', { visible: true, timeout: 10000 });
 
             // Scroll to the button to ensure it's in the viewport
             await page.evaluate(() => {
@@ -116,7 +118,7 @@ export const scrapeDBNavigator = async (abfahrtsbahnhof, ankunftsbahnhof, datum,
     await browser.close();
 };
 
-const generateURLLL = (departureStation, arrivalStation, date, time) => {
+const generateURLL = (departureStation, arrivalStation, date, time) => {
     const baseURL = "https://www.bahn.com/en"; // Replace with the actual base URL of DB Navigator
     const params = new URLSearchParams({
         start: departureStation,
@@ -129,17 +131,32 @@ const generateURLLL = (departureStation, arrivalStation, date, time) => {
     return 'https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=D%C3%BCsseldorf%20Hbf&zo=Wuppertal%20Hbf&kl=2&r=13:16:KLASSENLOS:1&soid=A%3D1%40O%3DD%C3%BCsseldorf%20Hbf%40X%3D6794317%40Y%3D51219960%40U%3D80%40L%3D8000085%40B%3D1%40p%3D1742845592%40i%3DU%C3%97008008094%40&zoid=A%3D1%40O%3DWuppertal%20Hbf%40X%3D7149544%40Y%3D51254362%40U%3D80%40L%3D8000266%40B%3D1%40p%3D1741637184%40i%3DU%C3%97008008143%40&sot=ST&zot=ST&soei=8000085&zoei=8000266&hd=2025-04-07T07:15:07&hza=D&hz=%5B%5D&ar=false&s=true&d=false&vm=00,01,02,03,04,05,06,07,08,09&fm=false&bp=false&dlt=false&dltv=false';
 };
 
+
 const generateURL = (departureStation, arrivalStation, date, time) => {
     const baseURL = "https://www.bahn.de/buchung/fahrplan/suche";
 
+    // Ensure time is formatted correctly (adds leading zero if missing)
+    const formattedTime = time.padStart(5, "0"); // Ensures "7:10" → "07:10"
+
+    // Encode station names to match Bahn.de's expected format
+    const encodedDeparture = encodeURIComponent(departureStation);
+    const encodedArrival = encodeURIComponent(arrivalStation);
+
+    // Construct URL parameters
     const params = new URLSearchParams({
-        so: departureStation,
-        zo: arrivalStation,
-        hd: `${date}T${time}:00`, // Correct datetime format
-        kl: 2, // 2nd class by default
-        ar: false,
-        s: true,
-        d: false
+        sts: "true",   // Enable station search
+        so: encodedDeparture,   // Departure station
+        zo: encodedArrival,     // Arrival station
+        hd: `${date}T${formattedTime}:00`, // Full date-time format (YYYY-MM-DDTHH:MM:SS)
+        kl: 2,        // 2nd class ticket
+        ar: "false",  // One-way trip
+        s: "true",    // Activate search
+        d: "false",   // No flexible tickets
+        vm: "00,01,02,03,04,05,06,07,08,09", // Enable all train types
+        fm: "false",  // No mobility restrictions
+        bp: "false",  // No bicycle transport
+        dlt: "false",
+        dltv: "false"
     });
 
     return `${baseURL}#${params.toString()}`;

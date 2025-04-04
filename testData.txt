@@ -11,8 +11,8 @@ const time = "14:45";
 
 
 
-const departureStation = "Frankfurt Hbf";  
-const arrivalStation = "Stuttgart Hbf";   
+const departureStation = "Münster Hbf";  
+const arrivalStation = "Epe";   
 const date = "2025-07-20";  
 const time = "08:30";  
 
