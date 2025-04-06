@@ -7,7 +7,7 @@ const date = "2025-04-05";                // (format: YYYY-MM-DD)
 const time = "11:10";                   // (format: HH:mm)
 
 
-cron.schedule('* 2 * * *', () => { // Every 2 minutes
+cron.schedule('*/2 * * * *' , () => { // Every 2 minutes
     try {
         scrapeDBNavigator(departureStation, arrivalStation, date, time);
 
