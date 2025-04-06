@@ -1,12 +1,13 @@
 import puppeteer from "puppeteer";
+import { stationData } from './stationData.js';
 
 export const scrapeDBNavigator = async (departureStation, arrivalStation, date, time) => {
     const browser = await puppeteer.launch({ headless: false }); // false for debugging
     const page = await browser.newPage();
 
     // Open the DB Navigator website
-    //const url = generateURL(departureStation, arrivalStation, date, time);
-    const url = generateBookingURL
+    const url = generateURL(departureStation, arrivalStation, date, time);
+    //const url = generateBookingURL(departureStation, arrivalStation, date, time)
 
     await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -134,52 +135,53 @@ const generateURL = (departureStation, arrivalStation, date, time) => {
     return 'https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=D%C3%BCsseldorf%20Hbf&zo=Wuppertal%20Hbf&kl=2&r=13:16:KLASSENLOS:1&soid=A%3D1%40O%3DD%C3%BCsseldorf%20Hbf%40X%3D6794317%40Y%3D51219960%40U%3D80%40L%3D8000085%40B%3D1%40p%3D1742845592%40i%3DU%C3%97008008094%40&zoid=A%3D1%40O%3DWuppertal%20Hbf%40X%3D7149544%40Y%3D51254362%40U%3D80%40L%3D8000266%40B%3D1%40p%3D1741637184%40i%3DU%C3%97008008143%40&sot=ST&zot=ST&soei=8000085&zoei=8000266&hd=2025-04-07T07:15:07&hza=D&hz=%5B%5D&ar=false&s=true&d=false&vm=00,01,02,03,04,05,06,07,08,09&fm=false&bp=false&dlt=false&dltv=false';
 };
 
-function generateBookingURL(departure, arrival, date, time) {
-    const stationData = require('./stationData.js');
-
-    const dep = stationData[departure];
-    const arr = stationData[arrival];
+function generateBookingURL(departureStation, arrivalStation, date, time) {
+    // Fetch station details
+    const dep = stationData[departureStation];
+    const arr = stationData[arrivalStation];
 
     if (!dep || !arr) {
         console.error("Station not found in stationData.");
         return null;
     }
 
+    // Construct URL parameters
     const params = new URLSearchParams({
-        sts: "true",
-        so: dep.name,
-        zo: arr.name,
-        kl: "2",
-        r: "13:16:KLASSENLOS:1",
-        soid: dep.soid,
-        zoid: arr.soid,
-        sot: "ST",
-        zot: "ST",
-        soei: dep.id,
-        zoei: arr.id,
-        hd: `${date}T${time}:00`,
-        hza: "D",
-        hz: "[]",
-        ar: "false",
-        s: "true",
-        d: "false",
-        vm: "00,01,02,03,04,05,06,07,08,09",
-        fm: "false",
-        bp: "false",
-        dlt: "false",
-        dltv: "false"
+        sts: "true", // Always true for valid searches
+        so: encodeURIComponent(dep.name), // Encoded departure station name
+        zo: encodeURIComponent(arr.name), // Encoded arrival station name
+        kl: "2", // Second class (can be adjusted if needed)
+        r: "13:16:KLASSENLOS:1", // Example travel time and class type
+        soid: encodeURIComponent(dep.soid), // Encoded departure station ID
+        zoid: encodeURIComponent(arr.soid), // Encoded arrival station ID
+        sot: "ST", // Departure search type (can be adjusted if needed)
+        zot: "ST", // Arrival search type (can be adjusted if needed)
+        soei: dep.id, // Departure station ID
+        zoei: arr.id, // Arrival station ID
+        hd: `${date}T${time}:00`, // Date and time of departure in the correct format
+        hza: "D", // Custom setting (D for direct train search)
+        hz: "[]", // Empty array for any special filtering (no filters in this case)
+        ar: "false", // No return trip (can be adjusted if needed)
+        s: "true", // Valid for standard searches
+        d: "false", // No departure time constraints (can be adjusted if needed)
+        vm: "00,01,02,03,04,05,06,07,08,09", // Time slots for the train (default set)
+        fm: "false", // Filtering method for the trains (if needed)
+        bp: "false", // No additional settings for price breakdown (if needed)
+        dlt: "false", // No additional delays (if needed)
+        dltv: "false" // No additional delays (if needed)
     });
 
+    // Return the final URL
     return `https://www.bahn.de/buchung/fahrplan/suche#${params.toString()}`;
 }
 
 
-function logError(departure, arrival, date, time, errorMessage) {
+function logError(departureStation, arrivalStation, date, time, errorMessage) {
     const errorLog = `
     [ERROR] No connection found
     ------------------------------------
-    Departure Station: ${departure}
-    Arrival Station: ${arrival}
+    Departure Station: ${departureStation}
+    Arrival Station: ${arrivalStation}
     Date: ${date}
     Time: ${time}
     Error Message: ${errorMessage}

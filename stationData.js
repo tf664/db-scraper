@@ -1,4 +1,4 @@
-const stationData = {
+export const stationData = {
     "Düsseldorf Hbf": {
         name: "Düsseldorf Hbf",
         id: "8000085",
@@ -50,5 +50,3 @@ const stationData = {
         soid: "A=1@O=Färberstraße@X=6798200@Y=5122600@U=80@L=051111810@B=1@p=1740000002@i=U%970051111810@"
     }
 };
-
-module.exports = stationData;
