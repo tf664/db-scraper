@@ -12,6 +12,6 @@
   "description": "",
   "dependencies": {
     "node-cron": "^3.0.3",
-    "puppeteer": "^24.5.0"
+    "puppeteer": "^24.11.2"
   }
 }

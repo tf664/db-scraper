@@ -1,18 +1,19 @@
 import puppeteer from "puppeteer";
 import { stationData } from './stationData.js';
 
-export const scrapeDBNavigator = async (departureStation, arrivalStation, date, time) => {
-    const browser = await puppeteer.launch({ headless: false }); // false for debugging
+export const scrapeDBNavigator = async (date, time) => {
+    const browser = await puppeteer.launch({ headless: true }); // false for debugging
     const page = await browser.newPage();
 
-    // Open the DB Navigator website
-    //const url = generateURL(departureStation, arrivalStation, date, time);
-    const url = generateBookingURL(departureStation, arrivalStation, date, time)
+    const departureTime = new Date("2025-07-07T08:45:00");
 
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    // Generate URL
+    const bookingUrl = generateBookingUrl(startStation, endStation, departureTime);
 
-    console.log('Page loaded, waiting for departure data... \n');
-    console.log("Generated URL:", url); // debug
+    await page.goto(bookingUrl, { waitUntil: 'networkidle2' });
+
+    console.log('Page loaded, waiting for departure data... \n'); // debug
+    console.log("Generated URL:", bookingUrl); // debug
 
     try {
         await page.screenshot({ path: 'debug/1 beginning.png' }); // debug
@@ -29,9 +30,9 @@ export const scrapeDBNavigator = async (departureStation, arrivalStation, date, 
 
         if (acceptCookiesButton) {
             await acceptCookiesButton.click();
-            console.log(" Accepted cookies");
+            console.log("Accepted cookies"); // debug
         } else {
-            console.log("Cookie button not found");
+            console.log("Cookie button not found"); // debug
         }
 
 
@@ -44,42 +45,38 @@ export const scrapeDBNavigator = async (departureStation, arrivalStation, date, 
             await page.screenshot({ path: 'debug/3.5 noConnection.png' }); // debug
 
         } else {
-            await page.screenshot({ path: 'debug/4 preDetails.png' }); // debug
+            await page.screenshot({ path: 'debug/4 pre-Details.png' }); // debug
 
-            // Missing error handling for "Unerwarteter Fehler"
-
-            // Wait for the "Details" button to appear
-            const detailsButton = await page.waitForSelector('button.db-web-expansion-toggle__button', { visible: true, timeout: 15000 }).catch(() => null);
-
-            // Scroll to the button to ensure it's in the viewport
-            await page.evaluate(() => {
-                document.querySelector('button.db-web-expansion-toggle__button').scrollIntoView();
+            const detailsButton = await page.evaluateHandle(() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                return buttons.find(btn =>
+                    btn.textContent.trim().toLowerCase() === 'details'
+                );
             });
 
-            if (!detailsButton) {
-                console.log('Clicking the Details button...');
-                let retries = 3;
-                while (retries > 0) {
-                    try {
-                        await page.screenshot({ path: 'debug/5 before-click.png' }); // debug
+            if (detailsButton) {
+                console.log("detais-button found, scrolling into view"); // debug
+                await detailsButton.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+                // await page.waitForTimeout(500); // Kurzes Warten für Rendering
 
-                        await page.click('button.db-web-expansion-toggle__button');
-
-                        await page.screenshot({ path: 'debug/6 after-click.png' }); // debug
-
-                        console.log('Details button clicked successfully.');
-                        break; // Exit loop if successful
-                    } catch (error) {
-                        console.error('Error clicking the Details button ', error);
-                    }
+                try {
+                    await detailsButton.click();
+                    console.log("🟢 Details-Button erfolgreich geklickt.");
+                    await page.screenshot({ path: 'debug/6 after-Dtails.png' });
+                } catch (err) {
+                    console.error("Error | clicking details button:", err);
                 }
+            } else {
+                console.error("Error | no details button found.");
+                await page.screenshot({ path: 'debug/6 no-details-found.png' });
             }
+
 
             // Wait for the travel sections to load
             // Optionally, scroll to the bottom to trigger lazy loading
-            await page.evaluate(() => {
-                window.scrollTo(0, document.body.scrollHeight);
-            });
+            //            await page.evaluate(() => {
+            //                window.scrollTo(0, document.body.scrollHeight);
+            //            });
 
             await page.waitForSelector('.verbindungs-abschnitt', { visible: true });
 
@@ -124,28 +121,29 @@ export const scrapeDBNavigator = async (departureStation, arrivalStation, date, 
     await browser.close();
 };
 
-function generateBookingURL(departureStation, arrivalStation, date, time) {
-    const dep = stationData[departureStation];
-    const arr = stationData[arrivalStation];
+function generateBookingUrl(startStation, endStation, datetime) {
+    const timePart = datetime.toTimeString().slice(0, 5);
+    const timeString = `${timePart}:KLASSENLOS:1`;
+    // ISO-Date for 'hd' parameter (e.g. "2025-07-07T08:45:00")
+    const hd = datetime.toISOString().slice(0, 19);
 
-    if (!dep || !arr) {
-        console.error("Station not found in stationData.");
-        return null;
-    }
+    // help function for soid/zoid:
+    const createStationId = (station) =>
+        `A=1@O=${station.name}@X=${station.x}@Y=${station.y}@U=${station.u}@L=${station.l}@B=${station.b}@p=${station.p}@i=${station.i}@`;
 
     const params = new URLSearchParams({
         sts: "true",
-        so: dep.name,
-        zo: arr.name,
+        so: startStation.name,
+        zo: endStation.name,
         kl: "2",
-        r: "13:16:KLASSENLOS:1",
-        soid: dep.soid,
-        zoid: arr.soid,
+        r: timeString,
+        soid: createStationId(startStation),
+        zoid: createStationId(endStation),
         sot: "ST",
         zot: "ST",
-        soei: dep.id,
-        zoei: arr.id,
-        hd: `${date}T${time}:00`,
+        soei: startStation.evaNr.toString(),
+        zoei: endStation.evaNr.toString(),
+        hd: hd,
         hza: "D",
         hz: "[]",
         ar: "false",
@@ -154,21 +152,58 @@ function generateBookingURL(departureStation, arrivalStation, date, time) {
         vm: "00,01,02,03,04,05,06,07,08,09",
         fm: "false",
         bp: "false",
-        dlt: "false",
+        dlt: "true",
         dltv: "false"
     });
 
-    return `https://www.bahn.de/buchung/fahrplan/suche?${params.toString()}`;
+    return "https://www.bahn.de/buchung/fahrplan/suche#" + params.toString();
 }
 
-function getFutureTime(minutesOffset = 5) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + minutesOffset);
-    const h = now.getHours().toString().padStart(2, '0');
-    const m = now.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
-}
+const startStation = {
+    name: "Düsseldorf Hbf",
+    x: 6794317,
+    y: 51219960,
+    u: 80,
+    l: 8000085,
+    b: 1,
+    p: 1742845592,
+    i: "U~008000085",
+    evaNr: 8000085
+};
 
-function getCurrentDate() {
-    return new Date().toISOString().split('T')[0];
-}
+
+const endStation = {
+    name: "Wuppertal Hbf",
+    x: 7043300,       // Ost-Koordinate
+    y: 51161000,      // Nord-Koordinate
+    u: 80,
+    l: 8000296,       // LocoNet-ID
+    b: 1,
+    p: 1742845525,    // beliebiger Timestamp-Wert
+    i: "U~008000296", // interne ID
+    evaNr: 8000296    // EVA-Nummer für Wuppertal Hbf
+};
+
+
+const startStationForTramNotYetPossible = { // TODO
+    name: "Lennéstraße, Düsseldorf",
+    x: 6803500,
+    y: 51220000,
+    u: 80,
+    l: 8089021,
+    b: 1,
+    p: 1742845511,
+    i: "U~008089021",
+    evaNr: 8089021
+};
+const endStationForTramNotYetPossible = { // TODO
+    name: "Färberstraße, Düsseldorf",
+    x: 6802900,
+    y: 51228000,
+    u: 80,
+    l: 8089022,
+    b: 1,
+    p: 1742845522,
+    i: "U~008089022",
+    evaNr: 8089022
+};

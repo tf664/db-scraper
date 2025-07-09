@@ -9,7 +9,7 @@ const time = "10:00";                   // (format: HH:mm)
 
 cron.schedule('*/1 * * * *' , () => { // Every 2 minutes
     try {
-        scrapeDBNavigator(departureStation, arrivalStation, date, time);
+        scrapeDBNavigator(date, time);
     } catch (error) {
         console.error('Error during scraping:', error);
     }
