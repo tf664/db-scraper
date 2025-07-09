@@ -1,16 +1,25 @@
 import cron from 'node-cron';
 import { scrapeDBNavigator } from './db-scraper.js';
+import { stations } from "./stationData.js";
 
-const departureStation = "Düsseldorf Hbf";  
-const arrivalStation = "Epe Westf";   
-const date = "2025-05-10";                // (format: YYYY-MM-DD)
-const time = "10:00";                   // (format: HH:mm)
-
-
-cron.schedule('*/1 * * * *' , () => { // Every 2 minutes
+cron.schedule('*/1 * * * *', () => { // Every 1 minute
     try {
-        scrapeDBNavigator(date, time);
+        (async () => {
+            const date = "2025-07-10";
+            const time = "07:00:00";
+            const debug = true;
+
+            const startStation = stations.duesseldorfHbf;
+            const endStation = stations.wuppertalHbf;
+
+            const data = await scrapeDBNavigator({ date, time, startStation, endStation, debug });
+            console.log("🚂 Ergebnis:", data);
+        })();
     } catch (error) {
-        console.error('Error during scraping:', error);
+        console.error('| Scheduling error:', error);
     }
 });
+
+
+
+
